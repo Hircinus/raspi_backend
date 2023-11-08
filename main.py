@@ -1,45 +1,45 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, send_from_directory
 from werkzeug.utils import secure_filename
-
 import os
 
 appFlask = Flask(__name__)
+appFlask.config['UPLOAD_FOLDER'] = 'uploads/'  # This is where I defined the folder
+
+# To catch if the folder does not exist
+os.makedirs(appFlask.config['UPLOAD_FOLDER'], exist_ok=True)
+
 
 @appFlask.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
-        # Create a list to hold the image file paths
+        # Retrieve files from the 'folder_input' field
+        files = request.files.getlist("folder_input")
         image_files = []
-        # Get the uploaded images
-        uploaded_files = request.files.getlist("folder_input")
-
-        # Path where images will be saved
-        folder_path = os.path.join("static", "images")
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
-
-        # Iterate through the uploaded files
-        for file in uploaded_files:
+        for file in files:
             if file and allowed_file(file.filename):
-                # Save the file and add it to the image_files list
                 filename = secure_filename(file.filename)
-                file_path = os.path.join(folder_path, filename)
+                file_path = os.path.join(appFlask.config['UPLOAD_FOLDER'], filename)
                 file.save(file_path)
-                image_files.append(file_path.replace('\\', '/'))
-
-        # Debug: Print the contents of image_files
-        print(image_files)
+                image_files.append(file_path)
 
         if image_files:
+            # No need to send the full paths to the template
             return render_template('result.html', image_files=image_files)
         else:
             return render_template('result.html', image_files=None)
 
     return render_template('index.html')
 
+
 def allowed_file(filename):
     return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in {'jpg', 'jpeg', 'png', 'gif', 'bmp'}
+        filename.rsplit('.', 1)[1].lower() in {'jpg', 'jpeg', 'png', 'gif', 'bmp'}
+
+
+@appFlask.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(appFlask.config['UPLOAD_FOLDER'], filename)
+
 
 if __name__ == '__main__':
     appFlask.run(debug=True, port=5000)
