@@ -1,42 +1,45 @@
-
 from flask import Flask, request, render_template
+from werkzeug.utils import secure_filename
+
 import os
-import zipfile
 
 appFlask = Flask(__name__)
 
 @appFlask.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
-        folder_input = request.files['folder_input']
-        if folder_input:
-            zip_path = os.path.join("static", folder_input.filename)
-            folder_path = os.path.join("static", folder_input.filename.split(".")[0])
+        # Create a list to hold the image file paths
+        image_files = []
+        # Get the uploaded images
+        uploaded_files = request.files.getlist("folder_input")
 
-            if not os.path.exists(folder_path):
-                os.makedirs(folder_path)
+        # Path where images will be saved
+        folder_path = os.path.join("static", "images")
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
 
-            folder_input.save(zip_path)
+        # Iterate through the uploaded files
+        for file in uploaded_files:
+            if file and allowed_file(file.filename):
+                # Save the file and add it to the image_files list
+                filename = secure_filename(file.filename)
+                file_path = os.path.join(folder_path, filename)
+                file.save(file_path)
+                image_files.append(file_path.replace('\\', '/'))
 
-            image_files = []
+        # Debug: Print the contents of image_files
+        print(image_files)
 
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                zip_ref.extractall(folder_path)
-
-            for filename in os.listdir(folder_path):
-                if filename.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
-                    image_files.append(os.path.join(folder_path, filename).replace('\\', '/'))
-
-            # Debug: Print the contents of image_files
-            print(image_files)
-
-            if image_files:
-                return render_template('result.html', image_files=image_files)
-            else:
-                return render_template('result.html', image_files=None)
+        if image_files:
+            return render_template('result.html', image_files=image_files)
+        else:
+            return render_template('result.html', image_files=None)
 
     return render_template('index.html')
 
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in {'jpg', 'jpeg', 'png', 'gif', 'bmp'}
 
 if __name__ == '__main__':
     appFlask.run(debug=True, port=5000)
