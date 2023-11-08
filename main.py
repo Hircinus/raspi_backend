@@ -1,5 +1,7 @@
+import base64
+
 from flask import Flask, request, render_template
-from werkzeug.utils import secure_filename
+from werkzeug.utils import secure_filename, send_from_directory
 
 import os
 
