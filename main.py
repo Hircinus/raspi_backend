@@ -75,7 +75,15 @@ def line_graph():
     fig = px.line(df, x='Time', y='Temperature', title='Temperature Over Time')
     graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
-    return render_template('line_graph.html', graphJSON=graphJSON)
+    return render_template(
+        'line_graph.html',
+        labels=df['Time'].tolist(),
+        data_temperature=df['Temperature'].tolist(),
+        data_humidity=df['Humidity'].tolist(),
+        header="Temperature and Humidity Over Time",
+        description="Graph shows temperature and humidity changes over time."
+    )
+
 
 if __name__ == '__main__':
     app.run(debug=True)
